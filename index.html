@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Whooper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        /* Light Theme - A clean, professional look */
+        --color-background-main: #F7F8FC;
+        --color-background-panel: #FFFFFF;
+        --color-input-field: #F9FAFB;
+        --color-text-primary: #1F2937;
+        --color-text-secondary: #6B7280;
+        --color-border: #E5E7EB;
+        --color-accent: #3B82F6; /* Blue-600 */
+        --color-accent-hover: #2563EB; /* Blue-700 */
+        --color-accent-soft: #DBEAFE; /* Blue-100 */
+        --color-accent-pink: #EC4899;
+        --color-accent-pink-soft: #FCE7F3;
+        --color-status-red: #EF4444;
+        --color-status-red-soft: #FEE2E2;
+        --color-status-green: #22C55E;
+        --color-status-green-soft: #D1FAE5;
+
+        /* New colors for project dashboard */
+        --color-accent-purple: #705CF6;
+        --color-accent-purple-soft: #EBE8FE;
+        --color-tag-orange: #FFA943;
+        --color-tag-orange-soft: #FFF4E6;
+        --color-tag-pink: #FF6B97;
+        --color-tag-pink-soft: #FFEBF0;
+        --color-tag-sky: #64C5EB;
+        --color-tag-sky-soft: #E9F7FE;
+      }
+      html.dark {
+        /* Dark Theme - Glassmorphism style from the image */
+        --color-background-main: #110f28; /* Base dark color */
+        --color-background-panel: rgba(123, 97, 255, 0.1); /* Translucent purple */
+        --color-input-field: rgba(0, 0, 0, 0.2);
+        --color-text-primary: #F0F2FF;
+        --color-text-secondary: #A9B2D9;
+        --color-border: rgba(255, 255, 255, 0.1);
+        --color-accent: #60A5FA; /* Light Blue */
+        --color-accent-hover: #3B82F6;
+        --color-accent-soft: rgba(96, 165, 250, 0.15);
+        --color-accent-pink: #EC4899; /* Pink */
+        --color-accent-pink-soft: rgba(236, 72, 153, 0.15);
+        --color-status-red: #F87171;
+        --color-status-red-soft: rgba(248, 113, 113, 0.2);
+        --color-status-green: #34D399;
+        --color-status-green-soft: rgba(52, 211, 153, 0.2);
+
+        /* New colors for project dashboard */
+        --color-accent-purple: #8B7AFF;
+        --color-accent-purple-soft: rgba(112, 92, 246, 0.15);
+        --color-tag-orange: #FFB76B;
+        --color-tag-orange-soft: rgba(255, 169, 67, 0.15);
+        --color-tag-pink: #FF8AB2;
+        --color-tag-pink-soft: rgba(255, 107, 151, 0.15);
+        --color-tag-sky: #82D4F5;
+        --color-tag-sky-soft: rgba(100, 197, 235, 0.15);
+      }
+      /* Apply glassmorphism effect to panels in dark mode */
+      .dark .bg-background-panel, 
+      .dark .bg-input-field {
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+      }
+      /* Apply gradient background for dark theme */
+      html.dark body {
+        background-color: var(--color-background-main);
+        background-image: linear-gradient(135deg, #23204e 0%, #110f28 100%);
+      }
+      .highlighted-card {
+        transform: rotate(-2deg);
+        border: 2px dashed var(--color-accent-purple);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+    </style>
+    <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"Roboto Mono"', 'monospace'],
+          },
+          colors: {
+            'background-main': 'var(--color-background-main)',
+            'background-panel': 'var(--color-background-panel)',
+            'input-field': 'var(--color-input-field)',
+            'text-primary': 'var(--color-text-primary)',
+            'text-secondary': 'var(--color-text-secondary)',
+            'border-color': 'var(--color-border)',
+            'accent': 'var(--color-accent)',
+            'accent-hover': 'var(--color-accent-hover)',
+            'accent-soft': 'var(--color-accent-soft)',
+            'accent-pink': 'var(--color-accent-pink)',
+            'accent-pink-soft': 'var(--color-accent-pink-soft)',
+            'status-red': 'var(--color-status-red)',
+            'status-red-soft': 'var(--color-status-red-soft)',
+            'status-green': 'var(--color-status-green)',
+            'status-green-soft': 'var(--color-status-green-soft)',
+            'accent-purple': 'var(--color-accent-purple)',
+            'accent-purple-soft': 'var(--color-accent-purple-soft)',
+            'tag-orange': 'var(--color-tag-orange)',
+            'tag-orange-soft': 'var(--color-tag-orange-soft)',
+            'tag-pink': 'var(--color-tag-pink)',
+            'tag-pink-soft': 'var(--color-tag-pink-soft)',
+            'tag-sky': 'var(--color-tag-sky)',
+            'tag-sky-soft': 'var(--color-tag-sky-soft)',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            }
+          }
+        }
+      }
+    }
+    </script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.26.0",
+    "vite": "https://aistudiocdn.com/vite@^7.1.12",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.4",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "jsonwebtoken": "https://aistudiocdn.com/jsonwebtoken@^9.0.2",
+    "bcryptjs": "https://aistudiocdn.com/bcryptjs@^3.0.2",
+    "express": "https://aistudiocdn.com/express@^5.1.0",
+    "dotenv": "https://aistudiocdn.com/dotenv@^17.2.3",
+    "socket.io-client": "https://aistudiocdn.com/socket.io-client@^4.7.5",
+    "http": "https://aistudiocdn.com/http@^0.0.1-security",
+    "socket.io": "https://aistudiocdn.com/socket.io@^4.8.1",
+    "pg": "https://aistudiocdn.com/pg@^8.16.3"
+  }
+}
+</script>
+</head>
+  <body class="bg-background-main text-text-primary font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx?v=restore-final"></script>
+  </body>
+</html>
