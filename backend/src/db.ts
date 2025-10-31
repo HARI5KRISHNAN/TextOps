@@ -1,13 +1,26 @@
 import { Pool } from 'pg';
 
-// The Pool will use connection details from environment variables
-// that are standard for the official postgres Docker image.
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
   host: process.env.DB_HOST,
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
   port: parseInt(process.env.DB_PORT || '5432'),
+  
+  // Enable SSL for production database connections
+  ssl: isProduction ? {
+    rejectUnauthorized: true,
+    // ca: process.env.DB_SSL_CA ? fs.readFileSync(process.env.DB_SSL_CA).toString() : undefined,
+    // key: process.env.DB_SSL_KEY ? fs.readFileSync(process.env.DB_SSL_KEY).toString() : undefined,
+    // cert: process.env.DB_SSL_CERT ? fs.readFileSync(process.env.DB_SSL_CERT).toString() : undefined,
+  } : false,
+
+  // Connection pooling best practices
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 pool.on('connect', () => {
@@ -15,19 +28,21 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  // FIX: Removed process.exit(-1) to prevent the server from crashing on a DB connection error.
-  // This was causing the frontend to receive invalid responses and fail to connect.
-  // The server will now log the error and continue running, allowing requests to fail gracefully.
+  console.error('Unexpected error on idle PostgreSQL client', err);
+  // Do not exit the process, let the connection be retried or fail gracefully.
 });
 
 export const db = {
-  // Use the query method for pg
   async query(text: string, params: any[] = []) {
     const start = Date.now();
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('executed query', { text, duration, rows: res.rowCount });
-    return res;
+    try {
+      const res = await pool.query(text, params);
+      const duration = Date.now() - start;
+      console.log('Executed query', { text, duration, rows: res.rowCount });
+      return res;
+    } catch (error) {
+        console.error('Database query error', { text, error });
+        throw error;
+    }
   }
 };

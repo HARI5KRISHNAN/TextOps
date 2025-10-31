@@ -1,16 +1,21 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import cors from 'cors';
-import { createServer } from 'http';
+import { createServer as createHttpServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
+import fs from 'fs';
+import path from 'path';
 import { Server } from 'socket.io';
+import helmet from 'helmet';
+
 import { startWatchingPods, getPods, stopWatchingPods } from './services/k8s.service';
 import aiRoutes from './routes/ai.routes';
+import authRoutes from './routes/auth.routes';
+import chatRoutes from './routes/chat.routes';
+import { apiLimiter } from './middleware/rateLimit.middleware';
 
-// FIX: Switched from `declare global` to module augmentation for 'express-serve-static-core'.
-// This is a more robust way to extend Express's Request type and resolves the issue where
-// the custom `io` property was not being recognized.
 declare module 'express-serve-static-core' {
   interface Request {
     io: Server;
@@ -19,82 +24,84 @@ declare module 'express-serve-static-core' {
 }
 
 const app = express();
-const httpServer = createServer(app);
+const isProduction = process.env.NODE_ENV === 'production';
 
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // Allow all origins in development; restrict in production
-    callback(null, true);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
-};
+// --- Server setup (HTTP or HTTPS) ---
+let server;
+if (isProduction) {
+  try {
+    const options = {
+      key: fs.readFileSync(process.env.SSL_KEY_PATH!),
+      cert: fs.readFileSync(process.env.SSL_CERT_PATH!),
+    };
+    server = createHttpsServer(options, app);
+    console.log('✓ Running on HTTPS');
+  } catch (err) {
+    console.error('SSL certificate error. Falling back to HTTP.', err);
+    server = createHttpServer(app);
+    console.log('⚠️ Running on HTTP (production fallback)');
+  }
+} else {
+  server = createHttpServer(app);
+  console.log('Running on HTTP (development)');
+}
 
-const io = new Server(httpServer, {
-  cors: corsOptions,
-  transports: ['websocket', 'polling'] // Support both WebSocket and HTTP polling
+const io = new Server(server, {
+  cors: { origin: process.env.CORS_ORIGIN || '*' }
 });
 
 const PORT = process.env.PORT || 5001;
 
-// Middleware
-app.use(cors(corsOptions));
+// --- Security Middleware ---
+app.use(helmet()); // Set security-related HTTP headers
+app.set('trust proxy', 1); // Trust first proxy for rate limiting, etc.
+
+// Force HTTPS redirect in production
+if (isProduction) {
+  app.use((req, res, next) => {
+    if (!req.secure) {
+      return res.redirect('https://' + req.headers.host + req.url);
+    }
+    next();
+  });
+}
+
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
+app.use('/api/', apiLimiter); // Apply global rate limiting to all API routes
 
 // Attach io instance to request object
-// FIX: Removed explicit types from middleware arguments to resolve an Express overload error
-// and to align with the pattern of relying on type inference used in other controllers.
-// The `req.io` property is now correctly typed via module augmentation.
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// Routes
+// --- Routes ---
 app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 
-// Health check route
-app.get('/', (req, res) => {
-  res.send('Kubernetes Dashboard API is running!');
-});
-
-// API route to get current pod list
-app.get('/api/pods', (req, res) => {
-  const pods = getPods();
-  res.json(pods);
-});
+app.get('/', (req, res) => res.send('Whooper API is running!'));
+app.get('/api/pods', (req, res) => res.json(getPods()));
 
 // --- Socket.IO Events ---
-
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
-
-  // Send initial pod list to new clients
   socket.emit('initial_pods', getPods());
-
-  // Handle disconnect
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-  });
+  socket.on('disconnect', () => console.log(`Client disconnected: ${socket.id}`));
 });
 
-// Start the server
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// --- Server Start & Shutdown ---
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Initialize Kubernetes watcher
 startWatchingPods(io).catch(err => {
-  console.error('Failed to start Kubernetes watcher:', err);
-  process.exit(1);
+  console.error('Top-level error starting Kubernetes watcher:', err);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully...');
   stopWatchingPods();
-  httpServer.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+  server.close(() => console.log('Server closed'));
 });

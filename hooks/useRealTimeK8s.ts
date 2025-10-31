@@ -1,13 +1,15 @@
-
-// hooks/useRealTimeK8s.ts
 import { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Pod, PodUpdateEvent } from '../types';
 
-// Point to your backend service
-const SOCKET_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://dashboard-api.example.com'
-  : '/'; // Development proxy
+const getSocketURL = () => {
+  if (process.env.NODE_ENV === 'production') {
+    // In production, connect to the same host that serves the page, using WSS for security
+    return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+  }
+  // In development, connect directly to the backend server on its specific port
+  return 'http://localhost:5001';
+};
 
 export const useRealTimeK8s = () => {
   const [pods, setPods] = useState<Pod[]>([]);
@@ -35,37 +37,37 @@ export const useRealTimeK8s = () => {
   }, []);
 
   useEffect(() => {
-    const socket: Socket = io(SOCKET_URL, {
+    const socket: Socket = io(getSocketURL(), {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      // Force secure connection in production
+      secure: process.env.NODE_ENV === 'production',
     });
 
     socket.on('connect', () => {
-      console.log('✓ Connected to Kubernetes backend');
+      console.log('✓ Connected to backend via WebSocket');
       setConnectionStatus('connected');
     });
 
     socket.on('disconnect', () => {
-      console.log('✗ Disconnected from Kubernetes backend');
+      console.log('✗ Disconnected from backend');
       setConnectionStatus('disconnected');
     });
 
-    // Receive initial pod list
     socket.on('initial_pods', (initialPods: Pod[]) => {
       console.log(`Received ${initialPods.length} pods`);
       setPods(initialPods);
     });
 
-    // Receive real-time updates
     socket.on('pod_update', (event: PodUpdateEvent) => {
       processUpdate(event);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+      console.error('WebSocket connection error:', error);
     });
 
     return () => {
