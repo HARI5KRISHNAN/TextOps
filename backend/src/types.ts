@@ -1,3 +1,4 @@
+
 export enum Role {
   USER = 'user',
   MODEL = 'model',
@@ -6,31 +7,35 @@ export enum Role {
 export type MessageReaction = { [emoji: string]: number[] };
 
 export interface BroadcastMessage {
+  id: number;
+  content: string;
+  timestamp: string;
+  channelId: string;
+  sender: {
     id: number;
-    content: string;
-    timestamp: string;
-    channelId: string;
-    sender: {
-        id: number;
-        name: string;
-        avatar: string;
-    };
-    role: Role;
-    isRead: boolean;
-    reactions: MessageReaction;
+    name: string;
+    avatar: string;
+  };
+  role: Role;
+  isRead: boolean;
+  reactions: MessageReaction;
 }
 
-// Types for the Pod Status Service
-export type PodStatus = 'Running' | 'Pending' | 'Error' | 'Succeeded';
+// Pod Status Types
+export type PodStatus = 'Running' | 'Pending' | 'Failed' | 'Succeeded' | 'Unknown';
 
 export interface Pod {
   id: string;
   name: string;
+  namespace: string;
   status: PodStatus;
-  ready: string;
-  age: string;
+  age: number; // In seconds
   restarts: number;
-  cpu: number;
-  memory: number;
-  metrics: any[];
+  cpuUsage: number | null;
+  memoryUsage: number | null;
+}
+
+export interface PodUpdateEvent {
+  type: 'ADDED' | 'MODIFIED' | 'DELETED';
+  object: Pod;
 }

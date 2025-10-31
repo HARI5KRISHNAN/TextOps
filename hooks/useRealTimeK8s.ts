@@ -1,17 +1,19 @@
-// src/hooks/useRealTimeK8s.ts
+
+// hooks/useRealTimeK8s.ts
 import { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Pod, PodUpdateEvent } from '../types';
 
-// The URL of your backend service. When running locally with the proxy, this works.
-// In production, this would be the URL of your backend service.
-const SOCKET_URL = '/'; 
+// Point to your backend service
+const SOCKET_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://dashboard-api.example.com'
+  : '/'; // Development proxy
 
 export const useRealTimeK8s = () => {
   const [pods, setPods] = useState<Pod[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('disconnected');
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  // Logic to process an incoming update event (this remains the same)
   const processUpdate = useCallback((event: PodUpdateEvent) => {
     setPods(currentPods => {
       const { type, object: updatedPod } = event;
@@ -29,37 +31,47 @@ export const useRealTimeK8s = () => {
           return currentPods;
       }
     });
+    setLastUpdate(new Date());
   }, []);
 
   useEffect(() => {
-    // Establish WebSocket connection
-    const socket: Socket = io(SOCKET_URL);
+    const socket: Socket = io(SOCKET_URL, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      transports: ['websocket', 'polling']
+    });
 
     socket.on('connect', () => {
-      console.log('Socket connected!');
+      console.log('✓ Connected to Kubernetes backend');
       setConnectionStatus('connected');
-      
-      // Request the initial list of pods upon connecting
-      socket.emit('list_pods', (initialPods: Pod[]) => {
-        setPods(initialPods);
-      });
     });
 
     socket.on('disconnect', () => {
-      console.log('Socket disconnected.');
+      console.log('✗ Disconnected from Kubernetes backend');
       setConnectionStatus('disconnected');
     });
 
-    // Listen for real-time updates from the backend
+    // Receive initial pod list
+    socket.on('initial_pods', (initialPods: Pod[]) => {
+      console.log(`Received ${initialPods.length} pods`);
+      setPods(initialPods);
+    });
+
+    // Receive real-time updates
     socket.on('pod_update', (event: PodUpdateEvent) => {
       processUpdate(event);
     });
 
-    // Cleanup function to close the socket when the component unmounts
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [processUpdate]); // Dependency array ensures this effect runs only once
+  }, [processUpdate]);
 
-  return { pods, connectionStatus };
+  return { pods, connectionStatus, lastUpdate };
 };

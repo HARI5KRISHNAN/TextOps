@@ -1,7 +1,8 @@
+
 {
   "name": "whooper-backend",
   "version": "1.0.0",
-  "description": "Backend for the Whooper Gemini Chat application.",
+  "description": "Backend for the Whooper Kubernetes Dashboard",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
@@ -9,6 +10,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@kubernetes/client-node": "^0.21.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
