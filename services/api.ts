@@ -1,5 +1,4 @@
 // This file will centralize all API calls to the backend.
-import { GoogleGenAI } from '@google/genai';
 import { Message, User } from '../types';
 
 const API_BASE_URL = '/api';
@@ -30,24 +29,26 @@ export const sendMessage = async (channelId: string, content: string, userId: nu
 
 export const generateSummary = async (transcript: string): Promise<{ summary: string }> => {
     try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `Provide a concise summary of the following meeting transcript. Use bullet points for key decisions and action items:\n\n${transcript}`;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
+        const response = await fetch(`${API_BASE_URL}/ai/generate-summary`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ transcript }),
         });
 
-        const summary = response.text;
-        
-        if (!summary) {
-            throw new Error('The AI returned an empty summary.');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to generate summary from the backend.');
         }
 
-        return { summary };
+        return response.json();
     } catch (error) {
-        console.error('Error generating summary with Gemini:', error);
-        throw new Error('Failed to generate summary from the AI. Please check your API key and network connection.');
+        console.error('Error generating summary via backend:', error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to generate summary: ${error.message}`);
+        }
+        throw new Error('An unknown error occurred while generating the summary.');
     }
 };
 

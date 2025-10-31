@@ -20,7 +20,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      ai-engine: {}
     restart: always
 
   db:
@@ -38,17 +37,6 @@ services:
       timeout: 5s
       retries: 5
     restart: always
-  
-  ai-engine:
-    build:
-      context: ./backend/ollama
-      dockerfile: Dockerfile
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-    restart: always
 
 volumes:
   postgres_data:
-  ollama_data:

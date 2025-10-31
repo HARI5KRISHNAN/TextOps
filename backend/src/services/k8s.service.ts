@@ -1,4 +1,6 @@
 
+
+
 import { V1Pod, Watch } from '@kubernetes/client-node';
 import * as k8s from '@kubernetes/client-node';
 import { Pod, PodUpdateEvent } from '../types';
@@ -6,6 +8,8 @@ import { Server } from 'socket.io';
 
 let allPods: Pod[] = [];
 let watch: Watch;
+// FIX: Add a variable to hold the watch request object, which can be aborted.
+let watchRequest: any;
 
 /**
  * Transform Kubernetes V1Pod object into our simplified Pod type
@@ -61,21 +65,31 @@ export async function startWatchingPods(io: Server): Promise<void> {
   try {
     const kc = new k8s.KubeConfig();
     
-    // Load configuration from the cluster (ServiceAccount)
-    kc.loadFromCluster();
+    // FIX: Use in-cluster config for production, and local kubeconfig for development.
+    // This prevents the backend from crashing during local dev.
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Loading K8s config from cluster...');
+      kc.loadFromCluster();
+    } else {
+      console.log('Loading K8s config from default (local kubeconfig)...');
+      kc.loadFromDefault();
+    }
 
     const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
     // List all pods initially
     console.log('Fetching initial pod list...');
-    const podResponse = await k8sApi.listPodForAllNamespaces();
-    allPods = (podResponse.body.items || []).map(transformK8sPod);
+    // FIX: The method returns a response object with a `body` property. Destructure it to correctly access the pod list.
+    const response = await k8sApi.listPodForAllNamespaces();
+    // FIX: Correctly access the pod list from the response object. The error indicates `response` is V1PodList, which has an `items` property.
+    allPods = (response.items || []).map(transformK8sPod);
     console.log(`Found ${allPods.length} pods`);
 
     // Setup watch for pod changes
     watch = new Watch(kc);
 
-    const watchRequest = await watch.watch(
+    // FIX: Store the request object to be able to abort it later.
+    watchRequest = await watch.watch(
       '/api/v1/pods', // Watch all pods across all namespaces
       {},
       (type: string, obj: V1Pod) => {
@@ -83,7 +97,10 @@ export async function startWatchingPods(io: Server): Promise<void> {
 
         // Determine the event type
         if (type === 'ADDED') {
-          allPods.push(transformedPod);
+          // Avoid duplicates if a pod already exists in the initial list
+          if (!allPods.some(p => p.id === transformedPod.id)) {
+            allPods.push(transformedPod);
+          }
         } else if (type === 'MODIFIED') {
           allPods = allPods.map(p => 
             p.id === transformedPod.id ? transformedPod : p
@@ -98,20 +115,28 @@ export async function startWatchingPods(io: Server): Promise<void> {
 
         console.log(`Pod Event [${type}]: ${transformedPod.name}`);
       },
+      // FIX: Combined error and done callbacks into one, as watch() expects only 4 arguments.
       (err) => {
-        console.error('Watch error:', err);
-        // Attempt to reconnect after a delay
-        setTimeout(() => startWatchingPods(io), 5000);
-      },
-      () => {
-        console.log('Watch closed');
+        if (err) {
+            console.error('Watch error:', err);
+            // Attempt to reconnect after a delay
+            setTimeout(() => startWatchingPods(io), 5000);
+        } else {
+            console.log('Watch closed');
+        }
       }
     );
 
     console.log('✓ Kubernetes watch established');
   } catch (error) {
     console.error('Failed to start watching pods:', error);
-    throw error;
+    // Add a retry mechanism for local development if the initial connection fails
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('Retrying K8s connection in 15 seconds...');
+        setTimeout(() => startWatchingPods(io), 15000);
+    } else {
+        throw error; // In production, let it fail fast to be restarted by Kubernetes
+    }
   }
 }
 
@@ -125,8 +150,10 @@ export function getPods(): Pod[] {
 /**
  * Stop watching pod changes
  */
+// FIX: Call abort() on the watch request object, not the Watch instance.
 export function stopWatchingPods(): void {
-  if (watch) {
-    watch.abort();
+  if (watchRequest) {
+    watchRequest.abort();
+    watchRequest = null;
   }
 }

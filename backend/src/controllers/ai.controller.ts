@@ -1,5 +1,4 @@
-// The URL for the self-hosted Ollama AI engine container.
-const OLLAMA_API_URL = 'http://ai-engine:11434/api/generate';
+import { GoogleGenAI } from '@google/genai';
 
 // FIX: Removed explicit Request and Response types to allow for correct type inference from Express router.
 export const generateSummary = async (req, res) => {
@@ -9,32 +8,29 @@ export const generateSummary = async (req, res) => {
         return res.status(400).json({ message: 'Transcript is required.' });
     }
 
-    try {
-        const prompt = `Provide a concise summary of the following meeting transcript. Use bullet points for key decisions and action items:\n\n${transcript}`;
+    if (!process.env.API_KEY) {
+        return res.status(500).json({ message: 'API_KEY is not configured on the server.' });
+    }
 
-        // NOTE: This uses the native `fetch` API, available in Node.js v18+.
-        const response = await fetch(OLLAMA_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'phi-3-mini', // The model we downloaded in the Dockerfile
-                prompt: prompt,
-                stream: false, // We want the full response at once
-            }),
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const prompt = `Provide a concise summary of the following meeting transcript. Use bullet points for key decisions and action items. Make sure to identify action items clearly with "**Action Item:**":\n\n${transcript}`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
         });
 
-        if (!response.ok) {
-            throw new Error(`Ollama API responded with status ${response.status}`);
-        }
-
-        const data = await response.json();
+        const summary = response.text;
         
-        res.status(200).json({ summary: data.response });
+        if (!summary) {
+            throw new Error('The AI returned an empty summary.');
+        }
+        
+        res.status(200).json({ summary });
 
     } catch (error) {
-        console.error('Error contacting Ollama AI Engine:', error);
-        res.status(500).json({ message: 'Failed to generate summary from AI engine.' });
+        console.error('Error contacting Gemini API:', error);
+        res.status(500).json({ message: 'Failed to generate summary from AI service.' });
     }
 };

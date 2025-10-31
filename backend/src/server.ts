@@ -1,12 +1,12 @@
-
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { startWatchingPods, getPods, stopWatchingPods } from './services/k8s.service';
+import aiRoutes from './routes/ai.routes';
 
 declare global {
   namespace Express {
@@ -41,10 +41,14 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Attach io instance to request object
-app.use((req, res, next) => {
+// FIX: Explicitly type middleware arguments to resolve Express overload error.
+app.use((req: Request, res: Response, next: NextFunction) => {
   req.io = io;
   next();
 });
+
+// Routes
+app.use('/api/ai', aiRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

@@ -20,6 +20,13 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
       },
+      // FIX: Add proxy for WebSocket connections to the backend server.
+      // This is crucial for the real-time pod status updates to work in development.
+      '/socket.io': {
+        target: 'http://localhost:5001',
+        ws: true,
+        changeOrigin: true,
+      }
     }
   },
   // FIX: Expose process.env to the client-side code to make process.env.API_KEY available.
