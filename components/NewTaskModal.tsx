@@ -86,14 +86,14 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ onClose, onSaveTask, users,
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      // FIX: Explicitly type `file` as `File` to resolve properties not found on type 'unknown' error.
+      // FIX: Explicitly type `file` as `File` and use `as const` for type discrimination.
       const newFiles = Array.from(e.target.files).map((file: File) => ({
         id: `file-${Date.now()}-${Math.random()}`,
         name: file.name,
         size: `${(file.size / 1024).toFixed(1)} KB`,
-        type: file.type.startsWith('image/') ? 'Image' : (file.type === 'application/pdf' ? 'PDF' : file.type.includes('word') ? 'Word' : 'Generic'),
+        type: file.type.startsWith('image/') ? 'Image' as const : (file.type === 'application/pdf' ? 'PDF' as const : file.type.includes('word') ? 'Word' as const : 'Generic' as const),
         url: '#', // In a real app, this would be a URL from a file upload service
-      } as ProjectFile));
+      }));
       setAttachments(prev => [...prev, ...newFiles]);
     }
   };
