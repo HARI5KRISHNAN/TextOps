@@ -16,7 +16,7 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
-  // FIX: Removed process.exit(-1) to prevent the server from crashing on a DB connection error.
+  // FIXED: Removed process.exit(-1) to prevent the server from crashing on a DB connection error.
   // This was causing the frontend to receive invalid responses and fail to connect.
   // The server will now log the error and continue running, allowing requests to fail gracefully.
 });
