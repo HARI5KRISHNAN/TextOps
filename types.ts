@@ -28,6 +28,7 @@ export interface Message {
     url: string;
     name: string;
     type: string;
+    size?: string;
   };
   isRead?: boolean;
   reactions?: { [emoji: string]: number[] };
@@ -86,13 +87,18 @@ export interface Project {
 }
 
 // Types for Project Detail View
+// FIX: Add description and other properties to make ProjectTask compatible with the Task type, as it is passed to components expecting a Task (e.g., NewTaskModal).
 export interface ProjectTask {
   id: string;
   title: string;
+  description: string;
   completed: boolean;
   assignee?: User;
   dueDate?: string;
   attachments?: ProjectFile[];
+  priority?: TaskPriority;
+  labels?: string[];
+  subtasks?: Subtask[];
 }
 
 export interface ProjectComment {
@@ -112,20 +118,25 @@ export interface ProjectFile {
 }
 
 
-// FIX: Added Pod and PodStatus types for PodStatusView component.
-export type PodStatus = 'Running' | 'Pending' | 'Error' | 'Succeeded';
+// KUBERNETES POD TYPES (Live Dashboard)
+export type PodStatus = 'Running' | 'Pending' | 'Failed' | 'Succeeded' | 'Unknown';
 
 export interface Pod {
-  id: string;
+  id: string; // Unique ID for React keys (e.g., podName-namespace)
   name: string;
+  namespace: string;
   status: PodStatus;
-  ready: string;
-  age: string;
+  age: number; // Stored as seconds
   restarts: number;
-  cpu: number;
-  memory: number;
-  metrics: any[];
+  cpuUsage: number | null; // Null if metrics are unavailable
+  memoryUsage: number | null;
 }
+
+export interface PodUpdateEvent {
+  type: 'ADDED' | 'MODIFIED' | 'DELETED';
+  object: Pod;
+}
+
 
 // FIX: Added missing types for Kanban components.
 export type TaskPriority = 'None' | 'Low' | 'Medium' | 'High';

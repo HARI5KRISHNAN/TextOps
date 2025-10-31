@@ -124,7 +124,7 @@ const NewTaskModal: React.FC<NewTaskModalProps> = ({ onClose, onSaveTask, users,
             </button>
         </div>
         <form onSubmit={handleSubmit}>
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
                 <div>
                     <label htmlFor="task-title" className="block text-sm font-medium text-text-secondary mb-1">Title</label>
                     <input

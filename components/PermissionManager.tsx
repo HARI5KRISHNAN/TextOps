@@ -44,7 +44,7 @@ const PermissionManager: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex flex-col p-6 bg-background-main overflow-y-auto">
+        <div className="flex-1 flex flex-col p-6 bg-background-main overflow-y-auto no-scrollbar">
             <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                 <div>
                     <div className="flex border-b border-border-color">
@@ -83,7 +83,7 @@ const PermissionManager: React.FC = () => {
                         </button>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto no-scrollbar">
                      <PermissionTable
                         members={members}
                         onAccessLevelChange={handleAccessLevelChange}

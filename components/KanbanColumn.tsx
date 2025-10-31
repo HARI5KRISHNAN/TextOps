@@ -44,7 +44,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ columnId, column, sortOptio
             <ChevronUpDownIcon className="w-4 h-4 text-text-secondary/70 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"/>
         </div>
       </header>
-      <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+      <div className="p-4 space-y-4 flex-1 overflow-y-auto no-scrollbar">
         {column.tasks.map(task => (
           <KanbanCard 
             key={task.id} 

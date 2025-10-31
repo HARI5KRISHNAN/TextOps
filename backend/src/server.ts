@@ -70,7 +70,8 @@ app.get('/', (req, res) => {
   res.send('Whooper API is running!');
 });
 
-// Socket.IO connection
+// --- Socket.IO Real-time Logic ---
+
 io.on('connection', (socket) => {
     console.log(`A user connected: ${socket.id}`);
     

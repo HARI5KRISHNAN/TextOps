@@ -8,7 +8,7 @@ interface ConversationViewProps {
     conversation: DirectConversation;
     onSendMessage: (message: string, file?: File) => void;
     isLoading: boolean;
-    onGenerateSummary: () => void;
+    onGenerateSummary: (messages?: Message[]) => void;
     user: User | null;
     typingUserName: string | null;
     onTypingStart: () => void;
@@ -37,6 +37,7 @@ const TooltipButton: React.FC<{ icon: React.ReactNode; label: string; tooltip: s
 
 const ConversationView: React.FC<ConversationViewProps> = ({ conversation, onSendMessage, isLoading, onGenerateSummary, user, typingUserName, onTypingStart, onTypingStop, onMarkAsRead, onReact, onStartCall }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [selectedMessageIds, setSelectedMessageIds] = useState<number[]>([]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -47,9 +48,32 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, onSen
     }, [conversation.messages, typingUserName]);
 
     useEffect(() => {
-        // When conversation changes or new messages arrive, mark them as read.
         onMarkAsRead();
-    }, [conversation.id, conversation.messages, onMarkAsRead]);
+        setSelectedMessageIds([]); // Clear selection when conversation changes
+    }, [conversation.id, onMarkAsRead]);
+
+    useEffect(() => {
+        // Clear selection if new messages arrive
+        setSelectedMessageIds([]);
+    }, [conversation.messages]);
+
+    const handleSelectMessage = (messageId: number) => {
+        setSelectedMessageIds(prev =>
+            prev.includes(messageId)
+                ? prev.filter(id => id !== messageId)
+                : [...prev, messageId]
+        );
+    };
+
+    const handleCancelSelection = () => {
+        setSelectedMessageIds([]);
+    };
+
+    const handleSummarizeSelection = () => {
+        const selectedMessages = conversation.messages.filter(msg => msg.id && selectedMessageIds.includes(msg.id));
+        onGenerateSummary(selectedMessages);
+        setSelectedMessageIds([]);
+    };
 
 
     return (
@@ -71,8 +95,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, onSen
                 </div>
                 <div className="flex items-center gap-2">
                      <button
-                        onClick={onGenerateSummary}
-                        disabled={isLoading}
+                        onClick={() => onGenerateSummary()}
+                        disabled={isLoading || selectedMessageIds.length > 0}
                         className="flex items-center gap-2 text-sm font-semibold bg-accent-soft text-accent px-3 py-1.5 rounded-md hover:bg-accent/30 border border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                        <SparklesIcon className="w-4 h-4"/>
@@ -92,8 +116,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, onSen
                     />
                 </div>
             </header>
-            <div className="flex-1 overflow-y-auto p-6">
-                <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+                <div className="space-y-1">
                     {conversation.messages.map((msg, index) => {
                         const augmentedMessage: Message = { ...msg };
                         if (msg.role === Role.USER && user) {
@@ -111,6 +135,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, onSen
                                 message={augmentedMessage} 
                                 currentUserId={user?.id || null}
                                 onReact={onReact}
+                                isSelected={msg.id ? selectedMessageIds.includes(msg.id) : false}
+                                onSelectMessage={handleSelectMessage}
                              />
                         );
                     })}
@@ -120,14 +146,28 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, onSen
                     <div ref={messagesEndRef} />
                 </div>
             </div>
-            <div className="p-6 pt-0">
-                <ChatInput 
-                    onSendMessage={onSendMessage} 
-                    isLoading={isLoading} 
-                    onTypingStart={onTypingStart}
-                    onTypingStop={onTypingStop}
-                />
-            </div>
+            {selectedMessageIds.length > 0 ? (
+                <div className="p-4 bg-background-panel border-t border-border-color flex justify-between items-center animate-fade-in shadow-md">
+                    <span className="font-semibold text-text-primary">{selectedMessageIds.length} message{selectedMessageIds.length > 1 ? 's' : ''} selected</span>
+                    <div className="flex gap-2">
+                        <button onClick={handleCancelSelection} className="px-4 py-2 bg-background-main border border-border-color text-text-primary font-semibold rounded-lg hover:bg-input-field transition-colors">
+                            Cancel
+                        </button>
+                        <button onClick={handleSummarizeSelection} disabled={isLoading} className="px-4 py-2 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50">
+                            {isLoading ? 'Summarizing...' : 'Summarize Selection'}
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                 <div className="p-6 pt-0">
+                    <ChatInput 
+                        onSendMessage={onSendMessage} 
+                        isLoading={isLoading} 
+                        onTypingStart={onTypingStart}
+                        onTypingStop={onTypingStop}
+                    />
+                </div>
+            )}
         </div>
     );
 };

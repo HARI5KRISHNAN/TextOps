@@ -19,3 +19,18 @@ export interface BroadcastMessage {
     isRead: boolean;
     reactions: MessageReaction;
 }
+
+// Types for the Pod Status Service
+export type PodStatus = 'Running' | 'Pending' | 'Error' | 'Succeeded';
+
+export interface Pod {
+  id: string;
+  name: string;
+  status: PodStatus;
+  ready: string;
+  age: string;
+  restarts: number;
+  cpu: number;
+  memory: number;
+  metrics: any[];
+}

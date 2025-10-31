@@ -15,7 +15,7 @@ const ChatList: React.FC<ChatListProps> = ({ group, activeChatId, onSelectChat, 
       <header className="p-4 border-b border-border-color shadow-sm h-[61px] flex items-center">
         <h2 className="text-lg font-bold text-text-primary">{group.name}</h2>
       </header>
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
         <div className="flex justify-between items-center px-2 py-1 mb-2">
             <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider">Text Channels</h3>
             <button onClick={onCreateChat} className="text-text-secondary hover:text-text-primary transition-colors">

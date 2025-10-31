@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, User, Project } from './types';
+import { View, User, Project, Pod } from './types';
 import NavigationSidebar from './components/NavigationSidebar';
 import SettingsView from './components/SettingsView';
 import PodStatusView from './components/PodStatusView';
 import KanbanBoard from './components/KanbanBoard';
-import MessagesView from './components/MessagesView';
+import MessagesView, { dummyConversations } from './components/MessagesView';
 import PermissionManager from './components/PermissionManager';
 import StatusBar from './components/StatusBar';
 import ProjectDetailView from './components/ProjectDetailView';
-import { initialProjects } from './data/mock';
+import { initialProjects, availableUsers } from './data/mock';
+import VideoCallView from './components/VideoCallView';
+import NewProjectModal from './components/NewProjectModal';
+import { useRealTimeK8s } from './hooks/useRealTimeK8s';
 
 type Theme = 'light' | 'dark';
 
@@ -36,13 +39,23 @@ const App: React.FC = () => {
   });
 
   const [activeView, setActiveView] = useState<View>('home');
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<Theme>(
     (localStorage.getItem('theme') as Theme) || 'dark'
   );
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [activeCallContact, setActiveCallContact] = useState<{ name: string; avatar: string; } | null>(null);
+  const [activeCallType, setActiveCallType] = useState<'audio' | 'video' | null>(null);
   
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  
+  const { pods, connectionStatus } = useRealTimeK8s();
+
+
   const handleUserSearchChange = (query: string) => {
     setUserSearchQuery(query);
     if (query && activeView !== 'messages') {
@@ -86,34 +99,90 @@ const App: React.FC = () => {
     setSelectedProjectId(null);
   };
 
+  const handleStartCall = (channelId: string, type: 'audio' | 'video') => {
+    const contact = dummyConversations.find(c => c.id === channelId);
+    if (contact) {
+        setActiveCallContact({ name: contact.name, avatar: contact.avatar });
+        setActiveCallType(type);
+        setIsCallActive(true);
+    } else {
+        alert('Contact not found for call.');
+    }
+  };
+
+  const handleEndCall = () => {
+    setIsCallActive(false);
+    setActiveCallContact(null);
+    setActiveCallType(null);
+  };
+
+  const handleOpenCreateProject = () => {
+    setProjectToEdit(null);
+    setIsProjectModalOpen(true);
+  };
+
+  const handleOpenEditProject = (project: Project) => {
+    setProjectToEdit(project);
+    setIsProjectModalOpen(true);
+  };
+  
+  const handleSaveProject = (projectData: { id?: string; title: string; description: string; category: string; categoryTheme: Project['categoryTheme']; progress: number; members: User[] }) => {
+    if (projectData.id) {
+        // Edit existing project
+        setProjects(prevProjects =>
+            prevProjects.map(p =>
+                p.id === projectData.id
+                    ? { ...p, ...projectData }
+                    : p
+            )
+        );
+    } else {
+        // Create new project
+        const newProject: Project = {
+            ...projectData,
+            id: `p${Date.now()}`,
+            status: 'Started',
+            comments: Math.floor(Math.random() * 10),
+            attachments: Math.floor(Math.random() * 5),
+            tasks: [],
+        };
+        setProjects(prevProjects => [newProject, ...prevProjects]);
+    }
+    setIsProjectModalOpen(false);
+    setProjectToEdit(null);
+  };
+
+  const handleOpenPodStatusView = () => {
+    setActiveView('status');
+  };
+
   const renderView = () => {
     if (activeView === 'home' && selectedProjectId) {
-        const selectedProject = initialProjects.find(p => p.id === selectedProjectId);
+        const selectedProject = projects.find(p => p.id === selectedProjectId);
         if (selectedProject) {
-            return <ProjectDetailView project={selectedProject} onBack={handleBackToProjects} />;
+            return <ProjectDetailView project={selectedProject} onBack={handleBackToProjects} onEditProject={() => handleOpenEditProject(selectedProject)} />;
         }
     }
 
     switch (activeView) {
       case 'home':
-        return <KanbanBoard onSelectProject={handleSelectProject} />;
+        return <KanbanBoard projects={projects} onSelectProject={handleSelectProject} onAddProject={handleOpenCreateProject} />;
       case 'messages':
         return (
           <MessagesView 
             user={user}
-            onReact={(messageId, emoji) => console.log(`Reacted to ${messageId} with ${emoji}`)}
             searchQuery={userSearchQuery}
-            onStartCall={(channelId, type) => alert(`Starting ${type} call in ${channelId}...`)}
+            onStartCall={handleStartCall}
           />
         );
       case 'permission':
         return <PermissionManager />;
       case 'status':
-        return <PodStatusView />;
+        return <PodStatusView pods={pods} connectionStatus={connectionStatus} />;
       case 'settings':
         return user ? <SettingsView user={user} onUpdateUser={handleUpdateUser} /> : null;
       default:
-        return <KanbanBoard onSelectProject={handleSelectProject}/>;
+        return <KanbanBoard projects={projects} onSelectProject={handleSelectProject} onAddProject={handleOpenCreateProject} />;
     }
   };
 
@@ -134,11 +203,26 @@ const App: React.FC = () => {
         onUserSearchChange={handleUserSearchChange}
       />
       <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 flex min-w-0 overflow-y-auto">
+        <main className="flex-1 flex min-w-0 overflow-y-auto no-scrollbar">
           {renderView()}
         </main>
-        <StatusBar />
+        <StatusBar pods={pods} onOpenPodStatusView={handleOpenPodStatusView} />
       </div>
+      {isCallActive && activeCallContact && activeCallType && (
+        <VideoCallView 
+          onEndCall={handleEndCall}
+          contact={activeCallContact}
+          callType={activeCallType}
+        />
+      )}
+      {isProjectModalOpen && (
+        <NewProjectModal
+            onClose={() => { setIsProjectModalOpen(false); setProjectToEdit(null); }}
+            onSaveProject={handleSaveProject}
+            users={availableUsers}
+            projectToEdit={projectToEdit}
+        />
+      )}
     </div>
   );
 };

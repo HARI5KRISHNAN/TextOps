@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { XCircleIcon } from './icons';
 import { User, Project } from '../types';
 
 interface NewProjectModalProps {
   onClose: () => void;
   onSaveProject: (projectData: {
+    id?: string;
     title: string;
     description: string;
     category: string;
@@ -13,6 +14,7 @@ interface NewProjectModalProps {
     members: User[];
   }) => void;
   users: User[];
+  projectToEdit?: Project | null;
 }
 
 const categoryOptions: { value: string, theme: Project['categoryTheme'] }[] = [
@@ -24,12 +26,25 @@ const categoryOptions: { value: string, theme: Project['categoryTheme'] }[] = [
     { value: 'Web Development', theme: 'blue' },
 ];
 
-const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSaveProject, users }) => {
+const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSaveProject, users, projectToEdit }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(categoryOptions[0].value);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [progress, setProgress] = useState(0);
+  
+  const isEditMode = !!projectToEdit;
+
+  useEffect(() => {
+    if (isEditMode && projectToEdit) {
+      setTitle(projectToEdit.title);
+      setDescription(projectToEdit.description);
+      setCategory(projectToEdit.category);
+      setProgress(projectToEdit.progress);
+      setSelectedUserIds(projectToEdit.members.map(m => m.id));
+    }
+  }, [projectToEdit, isEditMode]);
+
 
   const handleMemberToggle = (userId: number) => {
     setSelectedUserIds(prev =>
@@ -42,6 +57,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSaveProjec
     if (title.trim()) {
       const selectedCategory = categoryOptions.find(c => c.value === category)!;
       onSaveProject({
+        id: projectToEdit?.id,
         title: title.trim(),
         description: description.trim(),
         category: selectedCategory.value,
@@ -64,7 +80,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSaveProjec
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-border-color flex justify-between items-center">
-          <h2 className="text-xl font-bold text-text-primary">Create New Project</h2>
+          <h2 className="text-xl font-bold text-text-primary">{isEditMode ? 'Edit Project' : 'Create New Project'}</h2>
           <button
             onClick={onClose}
             className="text-text-secondary hover:text-text-primary"
@@ -74,7 +90,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSaveProjec
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
             <div>
               <label htmlFor="project-title" className="block text-sm font-medium text-text-secondary mb-1">Project Title</label>
               <input
@@ -159,7 +175,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSaveProjec
               className="px-4 py-2 bg-accent-purple text-white font-semibold rounded-lg hover:opacity-90 transition-colors disabled:bg-gray-400"
               disabled={!title.trim()}
             >
-              Create Project
+              {isEditMode ? 'Save Changes' : 'Create Project'}
             </button>
           </div>
         </form>

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Project, User } from '../types';
 import { PlusIcon, EllipsisHorizontalIcon, PaperClipIcon, ChatBubbleLeftIcon, UsersIcon, ClockIcon, PencilIcon, EnvelopeIcon, ChevronDownIcon, ChartPieIcon, CheckCircleIcon } from './icons';
 import NewProjectModal from './NewProjectModal';
-import { initialProjects, availableUsers } from '../data/mock';
+import { availableUsers } from '../data/mock';
 
 // --- SUB-COMPONENTS ---
 
@@ -132,7 +132,7 @@ const ProjectColumn: React.FC<{ title: string, projects: Project[], onSelectProj
 
 const ProjectsSidebar: React.FC = () => {
     return (
-        <aside className="w-[340px] flex-shrink-0 p-6 space-y-6 overflow-y-auto hidden lg:block">
+        <aside className="w-[340px] flex-shrink-0 p-6 space-y-6 overflow-y-auto no-scrollbar hidden lg:block">
             <div className="bg-background-panel p-4 rounded-2xl border border-border-color/50">
                 <div className="flex justify-between items-start">
                     <div>
@@ -209,26 +209,12 @@ const StatCard: React.FC<{title: string, value: string, color: string}> = ({titl
 
 // --- MAIN COMPONENT ---
 interface ProjectsDashboardProps {
+    projects: Project[];
     onSelectProject: (projectId: string) => void;
+    onAddProject: () => void;
 }
 
-const ProjectsDashboard: React.FC<ProjectsDashboardProps> = ({ onSelectProject }) => {
-    const [projects, setProjects] = useState<Project[]>(initialProjects);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const handleSaveProject = (projectData: { title: string; description: string; category: string; categoryTheme: Project['categoryTheme']; progress: number; members: User[] }) => {
-        const newProject: Project = {
-            id: `p${Date.now()}`,
-            ...projectData,
-            status: 'Started',
-            comments: Math.floor(Math.random() * 10),
-            attachments: Math.floor(Math.random() * 5),
-            tasks: [],
-        };
-        setProjects(prevProjects => [newProject, ...prevProjects]);
-        setIsModalOpen(false);
-    };
-
+const ProjectsDashboard: React.FC<ProjectsDashboardProps> = ({ projects, onSelectProject, onAddProject }) => {
     const groupedProjects = useMemo(() => {
         return projects.reduce((acc, project) => {
             if (!acc[project.status]) {
@@ -241,7 +227,7 @@ const ProjectsDashboard: React.FC<ProjectsDashboardProps> = ({ onSelectProject }
 
     return (
         <div className="flex-1 flex min-w-0 h-full overflow-hidden">
-            <main className="flex-1 p-6 flex flex-col overflow-y-auto">
+            <main className="flex-1 p-6 flex flex-col overflow-y-auto no-scrollbar">
                 <header className="flex-shrink-0 mb-6 flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-text-primary">Projects</h1>
                     <div className="flex items-center gap-2">
@@ -249,7 +235,7 @@ const ProjectsDashboard: React.FC<ProjectsDashboardProps> = ({ onSelectProject }
                             <ChartPieIcon className="w-5 h-5" />
                         </button>
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={onAddProject}
                             className="bg-accent-purple text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2">
                             <PlusIcon className="w-4 h-4"/>
                             <span>Create Project</span>
@@ -263,13 +249,6 @@ const ProjectsDashboard: React.FC<ProjectsDashboardProps> = ({ onSelectProject }
                 </div>
             </main>
             <ProjectsSidebar />
-            {isModalOpen && (
-                <NewProjectModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSaveProject={handleSaveProject}
-                    users={availableUsers}
-                />
-            )}
         </div>
     );
 };

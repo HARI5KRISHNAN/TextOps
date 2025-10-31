@@ -110,9 +110,10 @@ const FileListItem: React.FC<{ file: ProjectFile }> = ({ file }) => {
 interface ProjectDetailViewProps {
   project: Project;
   onBack: () => void;
+  onEditProject: () => void;
 }
 
-const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onBack }) => {
+const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onBack, onEditProject }) => {
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<ProjectTask | null>(null);
     const [tasks, setTasks] = useState<ProjectTask[]>(project.tasks || []);
@@ -277,7 +278,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onBack }
 
   return (
     <>
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto p-6 animate-fade-in">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto p-6 animate-fade-in no-scrollbar">
         {/* Header */}
         <header className="flex-shrink-0 mb-6 flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -297,7 +298,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onBack }
                     <ShareIcon className="w-4 h-4" />
                     <span>Share</span>
                 </button>
-                <button className="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-accent-hover transition-opacity flex items-center gap-2">
+                <button onClick={onEditProject} className="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-accent-hover transition-opacity flex items-center gap-2">
                     <PencilIcon className="w-4 h-4"/>
                     <span>Edit Project</span>
                 </button>

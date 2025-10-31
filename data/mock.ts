@@ -24,17 +24,18 @@ export const projectFiles: ProjectFile[] = [
     { id: 'f4', name: 'Marketing_Copy.docx', size: '128 KB', type: 'Word', url: '#' },
 ];
 
+// FIX: Added a 'description' to each task to align with the updated ProjectTask interface, which now requires it for compatibility with the Task type.
 export const projectTasks: ProjectTask[] = [
-    { id: 't1', title: 'Finalize homepage mockup', completed: true, assignee: availableUsers[1], dueDate: yesterday.toISOString().split('T')[0] },
-    { id: 't2', title: 'Develop user authentication flow', completed: true, assignee: availableUsers[3], dueDate: today.toISOString().split('T')[0] },
-    { id: 't3', title: 'Set up database schema', completed: false, assignee: availableUsers[4], dueDate: tomorrow.toISOString().split('T')[0], attachments: [projectFiles[2]] },
-    { id: 't4', title: 'Integrate payment gateway API', completed: false, dueDate: nextWeek.toISOString().split('T')[0], attachments: [projectFiles[0], projectFiles[3]] },
-    { id: 't5', title: 'User testing for the new dashboard', completed: false, assignee: availableUsers[2] },
-    { id: 't6', title: 'Create wireframes for mobile view', completed: true, assignee: availableUsers[0], dueDate: yesterday.toISOString().split('T')[0] },
-    { id: 't7', title: 'Write API documentation', completed: false, assignee: availableUsers[3], dueDate: nextWeek.toISOString().split('T')[0] },
-    { id: 't8', title: 'Deploy to staging server', completed: false },
-    { id: 't9', title: 'Fix login page CSS bug', completed: true, assignee: availableUsers[1] },
-    { id: 't10', title: 'Client presentation preparation', completed: false, assignee: availableUsers[0], dueDate: tomorrow.toISOString().split('T')[0] },
+    { id: 't1', title: 'Finalize homepage mockup', description: 'Create the final version of the homepage based on client feedback.', completed: true, assignee: availableUsers[1], dueDate: yesterday.toISOString().split('T')[0] },
+    { id: 't2', title: 'Develop user authentication flow', description: 'Implement login, registration, and password reset functionality.', completed: true, assignee: availableUsers[3], dueDate: today.toISOString().split('T')[0] },
+    { id: 't3', title: 'Set up database schema', description: 'Design and create the necessary tables for the application.', completed: false, assignee: availableUsers[4], dueDate: tomorrow.toISOString().split('T')[0], attachments: [projectFiles[2]] },
+    { id: 't4', title: 'Integrate payment gateway API', description: 'Connect the application to Stripe for payment processing.', completed: false, dueDate: nextWeek.toISOString().split('T')[0], attachments: [projectFiles[0], projectFiles[3]] },
+    { id: 't5', title: 'User testing for the new dashboard', description: 'Conduct usability tests with a focus group.', completed: false, assignee: availableUsers[2] },
+    { id: 't6', title: 'Create wireframes for mobile view', description: 'Design the layout for key screens on mobile devices.', completed: true, assignee: availableUsers[0], dueDate: yesterday.toISOString().split('T')[0] },
+    { id: 't7', title: 'Write API documentation', description: 'Document all endpoints for the backend API.', completed: false, assignee: availableUsers[3], dueDate: nextWeek.toISOString().split('T')[0] },
+    { id: 't8', title: 'Deploy to staging server', description: 'Push the latest build to the staging environment for QA.', completed: false },
+    { id: 't9', title: 'Fix login page CSS bug', description: 'The login button is misaligned on Firefox.', completed: true, assignee: availableUsers[1] },
+    { id: 't10', title: 'Client presentation preparation', description: 'Create slides and talking points for the upcoming client demo.', completed: false, assignee: availableUsers[0], dueDate: tomorrow.toISOString().split('T')[0] },
 ];
 
 export const projectComments: ProjectComment[] = [
