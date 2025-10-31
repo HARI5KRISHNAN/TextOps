@@ -8,12 +8,13 @@ import { Server } from 'socket.io';
 import { startWatchingPods, getPods, stopWatchingPods } from './services/k8s.service';
 import aiRoutes from './routes/ai.routes';
 
-declare global {
-  namespace Express {
-    export interface Request {
-      io: Server;
-      user?: any;
-    }
+// FIX: Switched from `declare global` to module augmentation for 'express-serve-static-core'.
+// This is a more robust way to extend Express's Request type and resolves the issue where
+// the custom `io` property was not being recognized.
+declare module 'express-serve-static-core' {
+  interface Request {
+    io: Server;
+    user?: any;
   }
 }
 
@@ -41,8 +42,10 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Attach io instance to request object
-// FIX: Explicitly type middleware arguments to resolve Express overload error.
-app.use((req: Request, res: Response, next: NextFunction) => {
+// FIX: Removed explicit types from middleware arguments to resolve an Express overload error
+// and to align with the pattern of relying on type inference used in other controllers.
+// The `req.io` property is now correctly typed via module augmentation.
+app.use((req, res, next) => {
   req.io = io;
   next();
 });
